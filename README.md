@@ -30,6 +30,10 @@ Cloud-based framework for lung health monitoring
     - Attempt to run SimpleITK filter: LabelShapeStatisticsImageFilter()
     - Collect statistics into a long-format csv for each image volume
     - Looking at the data in R. Basic summary stats and plotting with ggplot2
+  - 8.6.24: PLAN
+    - Go over using git to contribute code
+    - Go over existing functions to be used for existing dev
+      
 
 
 
