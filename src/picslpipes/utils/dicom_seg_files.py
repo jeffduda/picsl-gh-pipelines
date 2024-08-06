@@ -30,7 +30,7 @@ def dicom_seg_files( dir: str, labels: list[int], ext=".nii.gz" ) -> dict:
     """
 
     for label in labels:
-        my_glob = glob.glob(f"{dir}*seg-{label}{ext}")
+        my_glob = glob.glob(f"{dir}/*seg-{label}{ext}")
         if len(my_glob) == 1:
             files[label] = my_glob[0]
 

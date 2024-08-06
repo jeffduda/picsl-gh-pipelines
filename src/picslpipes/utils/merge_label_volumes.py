@@ -8,8 +8,29 @@ def merge_label_volumes( inputs: dict ) -> tuple:
     
     logging.debug("merge_label_volumes: start")
     
-    out_imgs=(None,None)  
+    out_imgs=(None,None)
 
+    segmentations = []
+    segmentation_arrays = []
+
+    for d, dirname in enumerate(glob.glob(my_dir + r"/NSCLC-Radiomics-recon/LUNG1-*")):
+        segmentations.append([sitk.ReadImage(os.path.join(dirname, file)) for file in glob.glob(dirname + r"/*/*seg-*.nii.gz")])
+        segmentation_arrays.append([sitk.GetArrayFromImage(seg)[:,::-1,:] for seg in segmentations[d]])
+
+        combined_segmentation_overlap_array = sitk.GetArrayFromImage(sitk.Image(segmentations[d][0].GetSize(), sitk.sitkUInt8))
+
+        combined_segmentation_array = segmentation_arrays[d][0]
+        for segmentation_array in segmentation_arrays[d][1:]:
+            combined_segmentation_overlap_array[np.logical_and(segmentation_array!=0, combined_segmentation_array!=0)] = segmentation_array[np.logical_and(segmentation_array!=0, combined_segmentation_array!=0)] + combined_segmentation_array[np.logical_and(segmentation_array!=0, combined_segmentation_array!=0)]
+            combined_segmentation_array[segmentation_array!=0] = segmentation_array[segmentation_array!=0]
+        
+        combined_segmentation = sitk.GetImageFromArray(combined_segmentation_array.astype(np.uint8))
+        combined_segmentation.CopyInformation(segmentations[d][0])
+
+        combined_segmentation_overlap = sitk.GetImageFromArray(combined_segmentation_overlap_array.astype(np.uint8))
+        combined_segmentation_overlap.CopyInformation(segmentations[d][0])
+
+    out_imgs = (combined_segmentation, combined_segmentation_overlap)
     return(out_imgs)
 
 def main():
