@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-import glob
 import logging
 
 def dicom_seg_files( dir: str, labels: list[int], ext=".nii.gz" ) -> dict:
@@ -23,16 +22,6 @@ def dicom_seg_files( dir: str, labels: list[int], ext=".nii.gz" ) -> dict:
     # Find files and put into a dict that looks like:
     # files = { 1:'file_seg-1.nii.gz', 2: 'file_seg-2.nii.gz'}
     
-    """
-    pass in a directory, match the segments to a dictionary
-
-    have a script that works on every study
-    """
-
-    for label in labels:
-        my_glob = glob.glob(f"{dir}/*seg-{label}{ext}")
-        if len(my_glob) == 1:
-            files[label] = my_glob[0]
 
     return(files)
 
