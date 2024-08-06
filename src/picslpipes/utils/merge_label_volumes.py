@@ -8,7 +8,7 @@ def merge_label_volumes( inputs: dict ) -> tuple:
     
     logging.debug("merge_label_volumes: start")
     
-    out_imgs=(None,None)    
+    out_imgs=(None,None)  
 
     return(out_imgs)
 

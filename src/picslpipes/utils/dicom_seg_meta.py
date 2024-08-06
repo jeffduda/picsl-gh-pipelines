@@ -16,7 +16,14 @@ def dicom_seg_meta_dcm( infile: str ) -> dict:
         logging.error("dicom_seg_meta_dcm: could not read file as dicom: "+infile)
         return None
     
+    """
+    pass in dicom, output the meta and list of structures in inputs
+    
+    what is its name
+    what is its labelID
+    what is its segment file path
 
+    """
 
     return(meta)
 
@@ -29,7 +36,18 @@ def dicom_seg_meta_json( infile: str ) -> dict:
         data = json.load(file)
     except:
         logging.error("dicom_seg_meta_json: could not read file as json: "+infile)
-        return None       
+        return None
+
+    """
+    pass in json file, output the meta and list of structures in inputs
+
+    which file name goes to which segment
+    
+    what is its name
+    what is its labelID
+    what is its segment file path
+
+    """
 
     return(meta)
 
@@ -52,6 +70,15 @@ def dicom_seg_meta( infile: str ) -> dict:
     else:
         logging.error("dicom_seg_meta: unknown input file type: "+pathlib.Path(infile).suffix)
         return None
+
+    """
+    pass in meta, output the meta and list of structures in inputs
+    
+    what is its name
+    what is its labelID
+    what is its segment file path
+
+    """
 
     return(meta)
 
