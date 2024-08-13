@@ -1,0 +1,13 @@
+LICENSE
+README.md
+setup.py
+src/picsl_gh_pipelines.egg-info/PKG-INFO
+src/picsl_gh_pipelines.egg-info/SOURCES.txt
+src/picsl_gh_pipelines.egg-info/dependency_links.txt
+src/picsl_gh_pipelines.egg-info/requires.txt
+src/picsl_gh_pipelines.egg-info/top_level.txt
+src/picslpipes/__init__.py
+src/picslpipes/utils/__init__.py
+src/picslpipes/utils/dicom_seg_files.py
+src/picslpipes/utils/dicom_seg_meta.py
+src/picslpipes/utils/merge_label_volumes.py
