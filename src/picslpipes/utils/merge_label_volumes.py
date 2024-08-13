@@ -8,10 +8,26 @@ def merge_label_volumes( inputs: dict ) -> tuple:
     
     logging.debug("merge_label_volumes: start")
     
-    out_imgs=(None,None)    
+    out_imgs=(None,None)
 
     return(out_imgs)
 
+#FUNCTION A
+#User Defined Inputs: name of structure, priority dictionary, label dictionary
+#json file
+#are the structures we want there? get the label id from the json file
+
+#FUNCTION B
+#
+#input directory
+#which files correspond to the images?
+
+#INTERMEDIATE: read files in, make sure everything is fine
+
+#FUNCTION C
+#merging creates single volume
+#
+#
 def main():
     
     my_parser = argparse.ArgumentParser(description='Merge labels from multiple files')
