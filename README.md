@@ -34,14 +34,29 @@ Cloud-based framework for lung health monitoring
     - Go over using git to contribute code
     - Go over existing functions to be used for existing dev
       
+# Usage
 
+## Testing dicom_seg_meta
+First, cd into a directory with an extracted json file
 
+To testing manually specifying structures names, run something like (optionally use -v for debugging output)
+```
+python /PATH/TO/picsl-gh-pipelines/src/picslpipes/utils/dicom_seg_meta.py -i FILE_seg-meta.json -s Lung-Left Lung-Right -v
+```
 
+Now test writing to output with
+```
+python /PATH/TO/picsl-gh-pipelines/src/picslpipes/utils/dicom_seg_meta.py -i FILE_seg-meta.json -s Lung-Left Lung-Right -o my_map.json -v
+```
 
-# Background
+Quickly check the output with
+```
+cat my_map.json
+```
 
-## Lung Cancer in Nigeria
-Description of the problem with relevant references
+Create a text file with a list of structures and test with that
+```
+echo "Lung-Left" > my_structs.txt
+echo "Lung-Right" >> my_structs.txt
+python /PATH/TO/picsl-gh-pipelines/src/picslpipes/utils/dicom_seg_meta.py -i FILE_seg-meta.json -l my_structs.txt -v
 
-## Regulatory considerations
-Summary of the issue to be considered with references
