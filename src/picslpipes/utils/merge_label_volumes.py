@@ -61,67 +61,51 @@ def merge_label_volumes( inputs: dict, priorities: list) -> tuple:
 
     return out_imgs
 
+def get_priority_mapping():
+    # This could be replaced with any method to fetch or define priorities
+    return {
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-1.nii.gz': 3,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-2.nii.gz': 1,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-3.nii.gz': 4,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-4.nii.gz': 2,
+    }
 
 def main():
-    
     my_parser = argparse.ArgumentParser(description='Merge labels from multiple files')
     my_parser.add_argument('--base_path', type=str, required=True, help="Base directory for the segmentation files")
     my_parser.add_argument('--patient_id', type=str, required=True, help="Patient ID")
     my_parser.add_argument('--verbose', help="Enable verbose output", action='store_true', default=False)
     args = my_parser.parse_args()
 
-    # Setup logging
-    log_level=logging.WARNING
-    if args.verbose:
-        log_level=logging.DEBUG
-    logging.basicConfig(level=log_level, format="%(asctime)s %(name)s - %(levelname)-6s - %(message)s")
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING, format="%(asctime)s %(name)s - %(levelname)-6s - %(message)s")
 
-    # Construct the path to the patient's folder
-    patient_folder = os.path.join(args.base_path, args.patient_id)
-
-    # Find all segmentation files for this patient
+    patient_folder = os.path.join(args.base_path, args.patient_id, '09-18-2008-StudyID-NA-69331')
     seg_files = [f for f in os.listdir(patient_folder) if f.endswith('.nii.gz') and 'seg' in f]
-    
-    # Sort the files to ensure correct order (optional, if the order is important)
-    seg_files.sort()
+    priority_map = get_priority_mapping()
 
-    # Create the input dictionary and priorities list
-    in_files = {}
-    priorities = []
+    # Sort files based on custom priorities
+    seg_files.sort(key=lambda x: priority_map[x])
 
-    for i, seg_file in enumerate(seg_files):
-        label = i + 1  # Assuming label IDs start at 1
-        in_files[label] = os.path.join(patient_folder, seg_file)
-        priorities.append(label)
+    in_files = {priority_map[file]: os.path.join(patient_folder, file) for file in seg_files}
+    priorities = sorted(priority_map.values())
 
-    # Try to read in all input images
     in_images = {}
     for label, file_path in in_files.items():
-        logging.debug("Label " + str(label) + " image: " + file_path)
         try:
             in_images[label] = sitk.ReadImage(file_path)
-        except:
-            logging.error("Could not read input file: " + file_path)
+        except Exception as e:
+            logging.error(f"Could not read input file: {file_path} due to {e}")
             exit(1)
 
-    # Do the merge
     out_imgs = merge_label_volumes(in_images, priorities)
 
-    # Define output file paths
     output_image_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation.nii.gz')
     output_metadata_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation_metadata.json')
-
-    # Write outputs to file
-    if out_imgs[0] is not None:
-        sitk.WriteImage(out_imgs[0], output_image_path)
-
-    if out_imgs[1] is not None:
-        with open(output_metadata_path, 'w') as f:
-            f.write(out_imgs[1])
+    sitk.WriteImage(out_imgs[0], output_image_path)
+    with open(output_metadata_path, 'w') as f:
+        f.write(out_imgs[1])
 
     print(f"Merged segmentation and metadata saved for {args.patient_id}.")
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     sys.exit(main())
-
