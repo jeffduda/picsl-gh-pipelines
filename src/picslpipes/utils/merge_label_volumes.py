@@ -3,75 +3,112 @@ import os
 import sys
 import logging
 import SimpleITK as sitk
+import numpy as np
+import json
 
-def merge_label_volumes( inputs: dict ) -> tuple:
+def merge_label_volumes( inputs: dict, priorities: list) -> tuple:
+    
+    """
+    Merges label volumes from multiple files into a single volume, resolving overlaps using priorities,
+    and generates a JSON metadata file with combined segment information.
+
+    Parameters:
+    inputs (dict): Dictionary where keys are labels and values are the corresponding SimpleITK images.
+    priorities (list): List of labels in the order of their priority. Higher priority labels appear first.
+
+    Returns:
+    tuple: Merged SimpleITK label image and a JSON metadata file as a string.
+    """
     
     logging.debug("merge_label_volumes: start")
     
-    out_imgs=(None,None)
-
-    return(out_imgs)
-
-#FUNCTION A
-#User Defined Inputs: name of structure, priority dictionary, label dictionary
-#json file
-#are the structures we want there? get the label id from the json file
-
-#FUNCTION B
-#
-#input directory
-#which files correspond to the images?
-
-#INTERMEDIATE: read files in, make sure everything is fine
-
-#FUNCTION C
-#merging creates single volume
-#
-#
-def main():
+    # Initialize an empty array with the same size as the input images
+    first_image = next(iter(inputs.values()))
+    size = first_image.GetSize()
+    merged_array = np.zeros(size, dtype=np.uint8)  # Assuming label values are integers
     
+    # Metadata dictionary to store combined segment information
+    metadata = {
+        "MergedSegments": []
+    }
+    
+    # Iterate over the priority list to overlay each label and build the metadata
+    for priority, label in enumerate(priorities, start=1):
+        if label in inputs:
+            logging.debug(f"Merging label {label} with priority.")
+            label_image = sitk.GetArrayFromImage(inputs[label])
+
+            # Overlay this label on the merged array, prioritizing the current label over the existing one
+            merged_array = np.where(label_image > 0, priority, merged_array)
+
+            # Add segment information to the metadata
+            metadata["MergedSegments"].append({
+                "OriginalLabel": label,
+                "Priority": priority,
+                "RelabeledValue": priority
+            })
+
+def main():
+
+    
+    # Convert the merged array back to a SimpleITK image
+    merged_image = sitk.GetImageFromArray(merged_array)
+    merged_image.CopyInformation(first_image)  # Copy spatial information from the original image
+
+    # Convert the metadata dictionary to a JSON string
+    metadata_json = json.dumps(metadata, indent=4)
+
+    out_imgs = (merged_image, metadata_json)
+
+    logging.debug("merge_label_volumes: complete")    
+
+    return out_imgs
+
+def get_priority_mapping():
+    # This could be replaced with any method to fetch or define priorities
+    return {
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-1.nii.gz': 3,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-2.nii.gz': 1,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-3.nii.gz': 4,
+        'LUNG1-001_09-18-2008-StudyID-NA-69331_seg-4.nii.gz': 2,
+    }
+
+def main():
     my_parser = argparse.ArgumentParser(description='Merge labels from multiple files')
-    my_parser.add_argument('-i', '--input', type=str, help="label to find image for", required=True, nargs=2, action='append')
-    my_parser.add_argument('-o', '--output', type=str, help="verbose output", required=True, nargs=2)
-    my_parser.add_argument('-v', '--verbose', help="verbose output", action='store_true', default=False)
+    my_parser.add_argument('--base_path', type=str, required=True, help="Base directory for the segmentation files")
+    my_parser.add_argument('--patient_id', type=str, required=True, help="Patient ID")
+    my_parser.add_argument('--verbose', help="Enable verbose output", action='store_true', default=False)
     args = my_parser.parse_args()
-    print(args)
 
-    # Setup logging
-    log_level=logging.WARNING
-    if args.verbose:
-        log_level=logging.DEBUG
-    logging.basicConfig(level=log_level, format="%(asctime)s %(name)s - %(levelname)-6s - %(message)s")
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING, format="%(asctime)s %(name)s - %(levelname)-6s - %(message)s")
 
+    patient_folder = os.path.join(args.base_path, args.patient_id, '09-18-2008-StudyID-NA-69331')
+    seg_files = [f for f in os.listdir(patient_folder) if f.endswith('.nii.gz') and 'seg' in f]
+    priority_map = get_priority_mapping()
 
-    # Check inputs for valid labels
-    in_files={}
-    for input in args.input:
-        if input[1] in in_files:
-            logging.error("Each image must have a unique label value")
-            exit(1)
-        in_files[input[1]]=input[0]
+    # Sort files based on custom priorities
+    seg_files.sort(key=lambda x: priority_map[x])
 
-    # Try to read in all input images
-    in_images={}
-    for k in in_files.keys():
-        logging.debug("Label " +str(k) + " image: "+in_files[k])
+    in_files = {priority_map[file]: os.path.join(patient_folder, file) for file in seg_files}
+    priorities = sorted(priority_map.values())
+
+    in_images = {}
+    for label, file_path in in_files.items():
         try:
-            in_images[k]=sitk.ReadImage(in_files[k])
-        except:
-            logging.error("could not read input file: "+in_files[k])
+            in_images[label] = sitk.ReadImage(file_path)
+        except Exception as e:
+            logging.error(f"Could not read input file: {file_path} due to {e}")
             exit(1)
 
-    # Do the merge
-    out_imgs = merge_label_volumes( in_images )
+    out_imgs = merge_label_volumes(in_images, priorities)
 
-    # Write outputs to file
-    if out_imgs[0] is not None:
-        sitk.WriteImage(out_imgs[0], args.output[0] )
+    output_image_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation.nii.gz')
+    output_metadata_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation_metadata.json')
+    sitk.WriteImage(out_imgs[0], output_image_path)
+    with open(output_metadata_path, 'w') as f:
+        f.write(out_imgs[1])
 
-    if out_imgs[1] is not None:
-        sitk.WriteImage(out_imgs[1], args.output[1] )
+    print(f"Merged segmentation and metadata saved for {args.patient_id}.")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     sys.exit(main())
-
