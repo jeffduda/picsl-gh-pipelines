@@ -47,6 +47,9 @@ def merge_label_volumes( inputs: dict, priorities: list) -> tuple:
                 "Priority": priority,
                 "RelabeledValue": priority
             })
+
+def main():
+
     
     # Convert the merged array back to a SimpleITK image
     merged_image = sitk.GetImageFromArray(merged_array)
