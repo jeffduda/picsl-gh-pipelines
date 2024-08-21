@@ -24,7 +24,9 @@ def merge_label_volumes( inputs: dict, priorities: list) -> tuple:
     
     # Initialize an empty array with the same size as the input images
     first_image = next(iter(inputs.values()))
-    size = first_image.GetSize()
+    #size = first_image.GetSize()
+    size = sitk.GetArrayViewFromImage(first_image).shape
+
     merged_array = np.zeros(size, dtype=np.uint8)  # Assuming label values are integers
     
     # Metadata dictionary to store combined segment information
@@ -47,6 +49,11 @@ def merge_label_volumes( inputs: dict, priorities: list) -> tuple:
                 "Priority": priority,
                 "RelabeledValue": priority
             })
+
+    merged_image = sitk.GetImageFromArray(merged_array)
+    merged_image.CopyInformation(first_image)
+
+    return((merged_image, metadata))
 
 def main():
 
@@ -75,24 +82,34 @@ def get_priority_mapping():
 
 def main():
     my_parser = argparse.ArgumentParser(description='Merge labels from multiple files')
-    my_parser.add_argument('--base_path', type=str, required=True, help="Base directory for the segmentation files")
-    my_parser.add_argument('--patient_id', type=str, required=True, help="Patient ID")
+    my_parser.add_argument('-i', '--input', type=str, required=True, help="json with files and labels")
+    my_parser.add_argument('-p', '--priority', type=str, required=False, help="mapping from priority to label number")
+    my_parser.add_argument('-o', '--output', type=str, help="output image filename", required=True) 
     my_parser.add_argument('--verbose', help="Enable verbose output", action='store_true', default=False)
+
     args = my_parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING, format="%(asctime)s %(name)s - %(levelname)-6s - %(message)s")
 
-    patient_folder = os.path.join(args.base_path, args.patient_id, '09-18-2008-StudyID-NA-69331')
-    seg_files = [f for f in os.listdir(patient_folder) if f.endswith('.nii.gz') and 'seg' in f]
-    priority_map = get_priority_mapping()
+    with open(args.input, 'r') as f:
+        in_files = json.load(f)
+        f.close()
 
-    # Sort files based on custom priorities
-    seg_files.sort(key=lambda x: priority_map[x])
+    priority={}
+    for count,label in enumerate(in_files.keys()):
+        priority[count+1]=label
 
-    in_files = {priority_map[file]: os.path.join(patient_folder, file) for file in seg_files}
-    priorities = sorted(priority_map.values())
+    if args.priority is not None:
+        with open(args.priority) as f:
+            priority = json.load(f)
+    
+    priority_values = list(priority.keys())
+    priority_labels = list(priority.values())
+    priority_labels.sort(key=lambda x: priority_values)
+
 
     in_images = {}
+    print(in_files)
     for label, file_path in in_files.items():
         try:
             in_images[label] = sitk.ReadImage(file_path)
@@ -100,15 +117,13 @@ def main():
             logging.error(f"Could not read input file: {file_path} due to {e}")
             exit(1)
 
-    out_imgs = merge_label_volumes(in_images, priorities)
+    print(in_images)
 
-    output_image_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation.nii.gz')
-    output_metadata_path = os.path.join(patient_folder, f'{args.patient_id}_merged_segmentation_metadata.json')
-    sitk.WriteImage(out_imgs[0], output_image_path)
-    with open(output_metadata_path, 'w') as f:
-        f.write(out_imgs[1])
+    out_imgs = merge_label_volumes(in_images, priority_labels)
+    print(out_imgs[1])
+    sitk.WriteImage(out_imgs[0], args.output)
 
-    print(f"Merged segmentation and metadata saved for {args.patient_id}.")
+
 
 if __name__ == "__main__":
     sys.exit(main())

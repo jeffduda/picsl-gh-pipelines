@@ -61,7 +61,7 @@ def ants_lung_lobes_from_mask(mask: str, out_file: str, verbose=False):
 def main():
     parser = argparse.ArgumentParser(description='Apply lung segmentation models to a CT volume')
     parser.add_argument('-i', '--input', help='Input CT volume', type=str, required=True)
-    parser.add_argument('-x', '--mask', help='Maskto use for segmentation', type=str, required=False)
+    parser.add_argument('-x', '--mask', help='Mask to use for segmentation', type=str, required=False)
     parser.add_argument('-m', '--model', help='Model to use for segmentation', type=str, required=True)
     parser.add_argument('-o', '--output', help='Output volume')
     args = parser.parse_args()
