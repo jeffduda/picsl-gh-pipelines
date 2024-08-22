@@ -1,4 +1,5 @@
 import itk, sys,argparse
+import numpy as np
 
 def main():
     parser = argparse.ArgumentParser(description='Apply lung segmentation models to a CT volume')
@@ -30,17 +31,25 @@ def main():
     maskReader = itk.ImageFileReader[MaskImageType].New()
     maskReader.SetFileName(args.seg)
 
+    imReader.Update()
     im = imReader.GetOutput()
     mask = maskReader.GetOutput()
+
+    hmin = args.min
+    hmax = args.max
+
+    if hmin is None:
+        hmin = int(np.min(itk.GetArrayViewFromImage(im)))
+    if hmax is None:
+        hmax = int(np.max(itk.GetArrayViewFromImage(im)))
+    
 
     if args.features == 'GLCM':
         filtr = itk.CoocurrenceTextureFeaturesImageFilter.New(im)
         filtr.SetMaskImage(mask)
         filtr.SetNumberOfBinsPerAxis(args.bins)
-        if args.min is not None:
-            filtr.SetHistogramMinimum(args.min)
-        if args.max is not None:
-            filtr.SetHistogramMaximum(args.max)
+        filtr.SetHistogramMinimum(hmin)
+        filtr.SetHistogramMaximum(hmax)
         filtr.SetNeighborhoodRadius([args.radius, args.radius, args.radius])
         result = filtr.GetOutput()
         itk.imwrite(result, args.output)
@@ -48,10 +57,8 @@ def main():
         filtr = itk.RunLengthTextureFeaturesImageFilter.New(im)
         filtr.SetMaskImage(mask)
         filtr.SetNumberOfBinsPerAxis(args.bins)
-        if args.min is not None:
-            filtr.SetHistogramValueMinimum(args.min)
-        if args.max is not None:
-            filtr.SetHistogramValueMaximum(args.max)
+        filtr.SetHistogramValueMinimum(hmin)
+        filtr.SetHistogramValueMaximum(hmax)
         if args.min_distance is not None:
             filtr.SetHistogramDistanceMinimum(args.min_distance)
         if args.max_distance is not None:

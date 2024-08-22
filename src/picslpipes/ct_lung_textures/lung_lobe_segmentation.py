@@ -16,7 +16,7 @@ def totalsegmentator_lung_vessels(img: str, mask: str, out_file: str, verbose=Fa
     vessel_img = ants.image_read(out_file)
     vessel_img = ants.threshold_image(vessel_img,1,1,1,0)
 
-    if mask_img is not None:
+    if mask is not None:
         mask_img = ants.image_read(mask)
         mask_img = ants.threshold_image(mask_img, 0, 0, 0, 1)
         vessel_img = mask_img * vessel_img
@@ -37,11 +37,11 @@ def ants_lung_extraction(img: str, out_file: str, verbose=False):
     out_mask = lung_ex['segmentation_image']*0
     lung_left = ants.threshold_image(lung_ex['segmentation_image'], 1, 1, 1, 0)
     left_cluster = ants.iMath(lung_left, 'GetLargestComponent', 20)
-    ants.image_write(left_cluster, 'left_cluster.nii.gz')
+    #ants.image_write(left_cluster, 'left_cluster.nii.gz')
     out_mask[left_cluster > 0] = 1
     lung_right = ants.threshold_image(lung_ex['segmentation_image'], 2, 2, 1, 0)
     right_cluster = ants.iMath(lung_right, 'GetLargestComponent', 20)
-    ants.image_write(right_cluster, 'right_cluster.nii.gz')
+    #ants.image_write(right_cluster, 'right_cluster.nii.gz')
     out_mask[right_cluster > 0] = 2
     ants.image_write(out_mask, out_file)
 
