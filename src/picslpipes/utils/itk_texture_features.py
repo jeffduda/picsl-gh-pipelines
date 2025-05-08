@@ -66,6 +66,10 @@ def main():
         filtr.SetNeighborhoodRadius([args.radius, args.radius, args.radius])
         result = filtr.GetOutput()
         itk.imwrite(result, args.output)
+    elif args.features == 'FIRSTORDER':
+        im_mean = itk.mean_image_filter(im, radius=args.radius)
+        im_median = itk.median_image_filter(im, radius=args.radius)
+
     else:
         print('Unknown feature type')
         return(1)
